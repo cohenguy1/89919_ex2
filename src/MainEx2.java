@@ -3,6 +3,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import InputOutput.DataClass;
+import InputOutput.LidstoneModel;
 import InputOutput.Output;
 
 public class MainEx2 {
@@ -28,13 +29,13 @@ public class MainEx2 {
 	    	DataClass devData = new DataClass();
 			devData.readInputFile(devl_inputFile);
 					
-			outputClass.writeOutput(devData.wordsTotalAmount(devData.mapTotalDocsWordCount()));
+			outputClass.writeOutput(DataClass.wordsTotalAmount(devData.mapTotalDocsWordCount()));
 			Map<String, Integer> trainMap = new TreeMap<String, Integer>();
 			Map<String, Integer> validationMap  = new TreeMap<String, Integer>();
 			devData.splitXPrecentOfDocsWords(0.9,trainMap,validationMap);
-			outputClass.writeOutput(devData.wordsTotalAmount(validationMap));
+			outputClass.writeOutput(DataClass.wordsTotalAmount(validationMap));
 			
-			long numberOfEventsInTrainingSet = devData.wordsTotalAmount(trainMap);
+			long numberOfEventsInTrainingSet = DataClass.wordsTotalAmount(trainMap);
 			outputClass.writeOutput(numberOfEventsInTrainingSet);
 			
 			//from now - not like ex2_dummpy_ouptut.txt
@@ -49,20 +50,24 @@ public class MainEx2 {
 			int unseenWordOccurencesInTraining = trainMap.get(unseenWord) == null ? 0 : trainMap.get(unseenWord);
 			outputClass.writeOutput((double)unseenWordOccurencesInTraining/numberOfEventsInTrainingSet);
 
-			double lambda = 0.1;
-			trainMap = new TreeMap<String, Integer>();
-			validationMap  = new TreeMap<String, Integer>();
-			devData.splitXPrecentOfDocsWords(lambda , trainMap, validationMap);
-			
-			inputWordOccurencesOnTraining = trainMap.get(inputWord) == null ? 0 : trainMap.get(inputWord);
-			numberOfEventsInTrainingSet = devData.wordsTotalAmount(trainMap);
-			
-			double pLidstoneInputWord = (inputWordOccurencesOnTraining + lambda)/(numberOfEventsInTrainingSet + outputClass.vocabulary_size);
+			double lambda = 0.1;			
+			double pLidstoneInputWord = LidstoneModel.CalcPLidstone(lambda, trainMap, inputWord, outputClass.vocabulary_size);
 			outputClass.writeOutput(pLidstoneInputWord);
 			
-			unseenWordOccurencesInTraining = trainMap.get(unseenWord) == null ? 0 : trainMap.get(unseenWord);
-			double pLidstoneUnseenWord = (unseenWordOccurencesInTraining + lambda)/(numberOfEventsInTrainingSet + outputClass.vocabulary_size);
+			double pLidstoneUnseenWord = LidstoneModel.CalcPLidstone(lambda, trainMap, unseenWord, outputClass.vocabulary_size);
 			outputClass.writeOutput(pLidstoneUnseenWord);
+			
+			double perplexity = calculatePerlexity(0.01, outputClass, validationMap);
+			outputClass.writeOutput(perplexity);
+			
+			perplexity = calculatePerlexity(0.10, outputClass, validationMap);
+			outputClass.writeOutput(perplexity);
+			
+			perplexity = calculatePerlexity(1.00, outputClass, validationMap);
+			outputClass.writeOutput(perplexity);
+			
+			double bestLambda = GetBestLambda(validationMap, outputClass);
+			outputClass.writeOutput(bestLambda);
 			
 //			DataClass testData = new DataClass();
 //			testData.readInputFile(test_inputFile);
@@ -73,4 +78,38 @@ public class MainEx2 {
 		}			
 	}
 
+	private static double calculatePerlexity(double lambda, Output outputClass, Map<String, Integer> validationMap) 
+	{		
+		double sumPWords = 0;
+		for (String word : validationMap.keySet())
+		{
+			double pWord = LidstoneModel.CalcPLidstone(lambda, validationMap, word, outputClass.vocabulary_size);
+			sumPWords += Math.log(pWord);
+		}
+		
+		long wordsInTrainingSet = DataClass.wordsTotalAmount(validationMap);
+		double perplexity = Math.exp(-1.0/wordsInTrainingSet * sumPWords);
+		return perplexity;
+	}
+
+	private static double GetBestLambda(Map<String, Integer> validationMap, Output outputClass)
+	{
+		double bestLambda = 0.0;
+		double bestPerplexityValue = calculatePerlexity(0, outputClass, validationMap);
+		
+		double perplexity;
+		
+		for (double lambda = 0.01; lambda <= 2; lambda += 0.01)
+		{
+			perplexity = calculatePerlexity(lambda, outputClass, validationMap);
+			
+			if (perplexity < bestPerplexityValue)
+			{
+				bestLambda = lambda;
+				bestPerplexityValue = perplexity;
+			}
+		}
+		
+		return bestLambda;
+	}
 }
