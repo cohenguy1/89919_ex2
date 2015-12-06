@@ -33,14 +33,36 @@ public class MainEx2 {
 			Map<String, Integer> validationMap  = new TreeMap<String, Integer>();
 			devData.splitXPrecentOfDocsWords(0.9,trainMap,validationMap);
 			outputClass.writeOutput(devData.wordsTotalAmount(validationMap));
-			outputClass.writeOutput(devData.wordsTotalAmount(trainMap));
+			
+			long numberOfEventsInTrainingSet = devData.wordsTotalAmount(trainMap);
+			outputClass.writeOutput(numberOfEventsInTrainingSet);
 			
 			//from now - not like ex2_dummpy_ouptut.txt
 			outputClass.writeOutput(trainMap.keySet().size()); //TODO: check why dummy says 18976 and we 18977
-			outputClass.writeOutput(trainMap.get(inputWord) == null ? 0 : trainMap.get(inputWord)); //Ido checked and saw their realy is 11 in the training and 3 in the validation
+			
+			int inputWordOccurencesOnTraining = trainMap.get(inputWord) == null ? 0 : trainMap.get(inputWord);
+			outputClass.writeOutput(inputWordOccurencesOnTraining); //Ido checked and saw their realy is 11 in the training and 3 in the validation
 
+			outputClass.writeOutput((double)inputWordOccurencesOnTraining/numberOfEventsInTrainingSet);
 			
+			String unseenWord = "unseen-word";
+			int unseenWordOccurencesInTraining = trainMap.get(unseenWord) == null ? 0 : trainMap.get(unseenWord);
+			outputClass.writeOutput((double)unseenWordOccurencesInTraining/numberOfEventsInTrainingSet);
+
+			double lambda = 0.1;
+			trainMap = new TreeMap<String, Integer>();
+			validationMap  = new TreeMap<String, Integer>();
+			devData.splitXPrecentOfDocsWords(lambda , trainMap, validationMap);
 			
+			inputWordOccurencesOnTraining = trainMap.get(inputWord) == null ? 0 : trainMap.get(inputWord);
+			numberOfEventsInTrainingSet = devData.wordsTotalAmount(trainMap);
+			
+			double pLidstoneInputWord = (inputWordOccurencesOnTraining + lambda)/(numberOfEventsInTrainingSet + outputClass.vocabulary_size);
+			outputClass.writeOutput(pLidstoneInputWord);
+			
+			unseenWordOccurencesInTraining = trainMap.get(unseenWord) == null ? 0 : trainMap.get(unseenWord);
+			double pLidstoneUnseenWord = (unseenWordOccurencesInTraining + lambda)/(numberOfEventsInTrainingSet + outputClass.vocabulary_size);
+			outputClass.writeOutput(pLidstoneUnseenWord);
 			
 //			DataClass testData = new DataClass();
 //			testData.readInputFile(test_inputFile);
